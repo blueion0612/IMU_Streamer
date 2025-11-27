@@ -1,0 +1,22 @@
+buildscript {
+    ext {
+        activity_compose_version = '1.7.1'
+        compose_version = '1.4.4'
+        compose_ui_version = '1.5.0-alpha03'
+        wear_compose_version = '1.2.0-alpha09'
+        kotlin_version = '1.8.10'
+        core_version = '1.11.0-alpha03'
+        fragment_version = "1.5.7"
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.4.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'org.jetbrains.kotlin.android' version "$kotlin_version" apply false
+}
