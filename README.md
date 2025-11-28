@@ -1,26 +1,26 @@
 # IMU Streaming App
 
-스마트워치와 스마트폰에서 IMU 센서 데이터를 실시간으로 스트리밍하는 Android 애플리케이션입니다.
+A real-time IMU sensor data streaming application for Android smartwatch and smartphone.
 
-> 본 프로젝트는 [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps)를 기반으로 개발되었습니다.
+> This project is based on [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps).
 
-## 개요
+## Overview
 
-| 항목 | 값 |
-|------|-----|
-| 버전 | 0.4.1 |
-| 플랫폼 | Android (Phone + WearOS Watch) |
-| 언어 | Kotlin |
-| 빌드 시스템 | Gradle (AGP 8.4.0) |
+| Item | Value |
+|------|-------|
+| Version | 0.4.1 |
+| Platform | Android (Phone + WearOS Watch) |
+| Language | Kotlin |
+| Build System | Gradle (AGP 8.4.0) |
 
-## 주요 기능
+## Features
 
-- **실시간 IMU 스트리밍**: 워치와 폰의 가속도계, 자이로스코프, 회전 벡터 데이터를 UDP로 전송
-- **햅틱 피드백**: 서버에서 워치로 진동 피드백 전송 가능
-- **WiFi 상태 모니터링**: 연결 상태, 속도, 신호 강도 실시간 표시
-- **간편한 설정**: 앱 내에서 Target IP 직접 수정 가능
+- **Real-time IMU Streaming**: Stream accelerometer, gyroscope, and rotation vector data from watch and phone via UDP
+- **Haptic Feedback**: Send vibration feedback from server to watch
+- **WiFi Status Monitoring**: Real-time display of connection status, speed, and signal strength
+- **Easy Configuration**: Modify target IP directly within the app
 
-## 시스템 구조
+## System Architecture
 
 ```
 ┌─────────────┐    Bluetooth    ┌─────────────┐      UDP        ┌─────────────┐
@@ -35,108 +35,141 @@
                               Haptic Command (12 bytes)
 ```
 
-## 데이터 형식
+## Data Format
 
-### IMU 데이터 (30 floats, 120 bytes, Big Endian)
+### IMU Data (30 floats, 120 bytes, Big Endian)
 
-| 인덱스 | 데이터 | 설명 |
-|--------|--------|------|
+| Index | Data | Description |
+|-------|------|-------------|
 | 0-14 | Watch | dT, timestamp(4), lacc(3), gyro(3), rotvec(4) |
 | 15-29 | Phone | dT, timestamp(4), lacc(3), gyro(3), rotvec(4) |
 
-### 햅틱 명령 (3 integers, 12 bytes, Little Endian)
+**Field Details:**
+- `dT`: Delta time since last sample (seconds)
+- `timestamp`: Hour, minute, second, nanosecond
+- `lacc`: Linear acceleration [x, y, z] (m/s²)
+- `gyro`: Gyroscope [x, y, z] (rad/s)
+- `rotvec`: Rotation vector quaternion [w, x, y, z]
 
-| 인덱스 | 필드 | 범위 |
-|--------|------|------|
-| 0 | intensity | 1-255 |
-| 1 | count | 1-10 |
-| 2 | duration | 50-500 ms |
+### Haptic Command (3 integers, 12 bytes, Little Endian)
 
-## 요구 사항
+| Index | Field | Range | Description |
+|-------|-------|-------|-------------|
+| 0 | intensity | 1-255 | Vibration intensity |
+| 1 | count | 1-10 | Number of vibrations |
+| 2 | duration | 50-500 | Duration per vibration (ms) |
 
-### 개발 환경
-- Android Studio (Hedgehog 이상)
+## Requirements
+
+### Development Environment
+- Android Studio (Hedgehog or later)
 - Gradle 8.4.0+
 - Kotlin 1.8.10
 - Java 1.8
 
-### 디바이스
-- **Phone**: Android 10 (API 29) 이상
-- **Watch**: WearOS (API 28 이상), Galaxy Watch 시리즈 권장
+### Devices
+- **Phone**: Android 10 (API 29) or higher
+- **Watch**: WearOS (API 28 or higher), Samsung Galaxy Watch series recommended
 
-## 빌드 및 설치
+## Build & Install
 
 ```bash
-# 전체 빌드
+# Full build
 ./gradlew build
 
-# Phone 앱 빌드 및 설치
+# Build and install Phone app
 ./gradlew :phone:installDebug
 
-# Watch 앱 빌드 및 설치
+# Build and install Watch app
 ./gradlew :watch:installDebug
 ```
 
-## 사용 방법
+## Usage
 
-1. **Phone 앱 실행**
-   - Target IP를 서버 IP로 설정 (화면에서 직접 수정 가능)
-   - WiFi 연결 상태 확인
+### 1. Setup Phone App
+- Launch the phone app
+- Set the target IP to your server IP (tap to edit)
+- Verify WiFi connection status
 
-2. **Watch 앱 실행**
-   - Phone과 연결 상태 확인 (Connected 표시)
-   - "Stream IMU" 토글을 켜서 스트리밍 시작
+### 2. Setup Watch App
+- Launch the watch app
+- Verify connection with phone (shows "Connected")
+- Toggle "Stream IMU" to start streaming
 
-3. **서버에서 데이터 수신**
-   ```python
-   import socket
-   import struct
+### 3. Receive Data on Server
 
-   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-   sock.bind(('0.0.0.0', 65000))
+```python
+import socket
+import struct
 
-   data, addr = sock.recvfrom(120)
-   values = struct.unpack('>30f', data)  # Big Endian
+# Create UDP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(('0.0.0.0', 65000))
 
-   watch_acc = values[5:8]    # Watch 가속도
-   phone_acc = values[20:23]  # Phone 가속도
-   ```
+# Receive IMU data
+data, addr = sock.recvfrom(120)
+values = struct.unpack('>30f', data)  # Big Endian
 
-4. **햅틱 피드백 전송**
-   ```python
-   import struct
+# Parse watch data
+watch_dt = values[0]
+watch_timestamp = values[1:5]
+watch_lacc = values[5:8]      # Linear acceleration
+watch_gyro = values[8:11]     # Gyroscope
+watch_rotvec = values[11:15]  # Rotation vector
 
-   data = struct.pack('<iii', 200, 1, 100)  # intensity, count, duration
-   sock.sendto(data, (phone_ip, 65010))
-   ```
+# Parse phone data
+phone_dt = values[15]
+phone_timestamp = values[16:20]
+phone_lacc = values[20:23]
+phone_gyro = values[23:26]
+phone_rotvec = values[26:30]
+```
 
-## 프로젝트 구조
+### 4. Send Haptic Feedback
+
+```python
+import socket
+import struct
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+phone_ip = "192.168.1.100"  # Phone IP address
+
+# Send haptic command (Little Endian)
+intensity = 200  # 1-255
+count = 1        # 1-10
+duration = 100   # 50-500 ms
+
+data = struct.pack('<iii', intensity, count, duration)
+sock.sendto(data, (phone_ip, 65010))
+```
+
+## Project Structure
 
 ```
 imu-streaming-app/
-├── phone/                          # Android Phone 앱
+├── phone/                          # Android Phone App
 │   └── src/main/java/com/imu/phone/
 │       ├── activity/               # Activities
-│       ├── service/                # IMU, Haptic 서비스
-│       ├── viewmodel/              # UI 상태 관리
+│       ├── service/                # IMU, Haptic services
+│       ├── viewmodel/              # UI state management
 │       ├── ui/                     # Jetpack Compose UI
-│       └── DataSingleton.kt        # 전역 상수
+│       └── DataSingleton.kt        # Global constants
 │
-├── watch/                          # WearOS Watch 앱
+├── watch/                          # WearOS Watch App
 │   └── src/main/java/com/imu/watch/
 │       ├── activity/               # Activities
-│       ├── service/                # IMU 서비스
-│       ├── viewmodel/              # 상태 관리
-│       └── DataSingleton.kt        # 전역 상수
+│       ├── service/                # IMU service
+│       ├── viewmodel/              # State management
+│       └── DataSingleton.kt        # Global constants
 │
-├── test/                           # Python 테스트 코드
-│   └── imu_test.py                 # 실시간 시각화 및 햅틱 테스트
+├── test/                           # Python test code
+│   └── imu_test.py                 # Real-time visualization & haptic test
 │
-├── IMU_APP_SPEC.md                 # 상세 데이터 통신 명세서
+├── IMU_APP_SPEC.md                 # Detailed data communication spec
 └── README.md
 ```
 
-## 테스트 코드 실행
+## Running Test Code
 
 ```bash
 cd test
@@ -144,15 +177,39 @@ pip install matplotlib numpy
 python imu_test.py
 ```
 
-## 참고 자료
+## Network Configuration
 
-- 원본 프로젝트: [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps)
-- 상세 데이터 명세: [IMU_APP_SPEC.md](./IMU_APP_SPEC.md)
+| Data Type | Port | Direction | Format |
+|-----------|------|-----------|--------|
+| IMU | 65000 | Phone → Server | Big Endian |
+| Haptic | 65010 | Server → Phone | Little Endian |
 
-## 라이선스
+## Troubleshooting
+
+### Watch not connecting to Phone
+- Ensure both devices are paired via Bluetooth
+- Check that the Phone app is running
+- Restart both apps
+
+### No data received on server
+- Verify the target IP is correctly set on the phone
+- Check firewall settings on the server
+- Ensure phone and server are on the same network
+
+### Haptic feedback not working
+- Check the phone IP address in your Python code
+- Verify port 65010 is not blocked
+- Ensure the watch is connected and streaming
+
+## References
+
+- Original Project: [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps)
+- Detailed Data Specification: [IMU_APP_SPEC.md](./IMU_APP_SPEC.md)
+
+## License
 
 MIT License
 
-## 제작
+## Author
 
-Made by LYH - 명지대학교 캡스톤 프로젝트
+Made by LYH - Myongji University Capstone Project
