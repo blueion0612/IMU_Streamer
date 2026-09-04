@@ -1,5 +1,5 @@
 """
-IMU Streaming Test Application
+IMU stream receiver
 - Real-time IMU acceleration and gyroscope visualization for watch and phone
 - Haptic feedback demo with UDP command sending
 - Auto-detects phone IP from incoming UDP packets
@@ -8,7 +8,7 @@ Requirements:
     pip install matplotlib numpy
 
 Usage:
-    python imu_test.py
+    python scripts/receive_imu.py
 
 Author: Yuhyeon Lee
 """
@@ -389,7 +389,7 @@ class IMUVisualizer:
     def run(self):
         """Start visualization"""
         print("=" * 50)
-        print("IMU Streaming Test Application")
+        print("IMU stream receiver")
         print("=" * 50)
         print(f"Listening for IMU data on port {IMU_PORT}")
         print("Phone IP will be auto-detected from incoming UDP packets")

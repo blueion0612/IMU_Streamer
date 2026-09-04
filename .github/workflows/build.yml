@@ -1,0 +1,41 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'          # Android Gradle Plugin 8.4 requires 17
+          cache: gradle
+      - name: Assemble both modules
+        run: ./gradlew :phone:assembleDebug :watch:assembleDebug --no-daemon
+
+  receiver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy matplotlib
+      - name: Receiver script compiles and its constants match the protocol
+        run: |
+          python -m py_compile scripts/receive_imu.py
+          python - <<'PY'
+          import re, io
+          s = io.open("scripts/receive_imu.py", encoding="utf-8").read()
+          assert "IMU_PORT = 65000" in s, "IMU port drifted from the documented 65000"
+          assert "HAPTIC_PORT = 65010" in s, "haptic port drifted from the documented 65010"
+          doc = io.open("docs/protocol.md", encoding="utf-8").read()
+          assert "65000" in doc and "65010" in doc
+          print("ports agree with docs/protocol.md")
+          PY

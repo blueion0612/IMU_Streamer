@@ -1,215 +1,115 @@
 # IMU Streaming App
 
-A real-time IMU sensor data streaming application for Android smartwatch and smartphone.
+Yuhyeon Lee · 2025
 
-> This project is based on [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps).
+[![License](https://img.shields.io/github/license/blueion0612/IMU_Stream_APP_MJU)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android%20%2B%20WearOS-blue)](https://developer.android.com/)
+[![Kotlin](https://img.shields.io/badge/kotlin-1.8.10-blue)](https://kotlinlang.org/)
+[![build](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml/badge.svg)](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml)
+[![Status](https://img.shields.io/badge/status-research%20code-orange)](#limitations)
 
-## Overview
+[**Protocol**](docs/protocol.md) · [**Architecture**](docs/architecture.md) · [**Upstream**](https://github.com/wearable-motion-capture/sensor-stream-apps)
 
-| Item | Value |
-|------|-------|
-| Version | 0.4.1 |
-| Platform | Android (Phone + WearOS Watch) |
-| Language | Kotlin |
-| Build System | Gradle (AGP 8.4.0) |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/hero_system-dark.png">
+  <img alt="Watch streams to the phone over the wearable channel, the phone sends both devices to a server over UDP, and haptic commands return through the phone" src="docs/figures/hero_system.png">
+</picture>
+
+**IMU Streaming App** puts a wrist device and a phone on the same UDP socket. The
+watch streams its sensors to the phone over the wearable channel, the phone merges
+in its own and sends both to whatever server you point it at, and a command sent
+back to the phone vibrates the watch. There is no calibration step: start the app
+and data flows.
 
 ## Features
 
-- **Real-time IMU Streaming**: Stream accelerometer, gyroscope, and rotation vector data from watch and phone via UDP
-- **Haptic Feedback**: Send vibration feedback from server to watch
-- **WiFi Status Monitoring**: Real-time display of connection status, speed, and signal strength
-- **Easy Configuration**: Modify target IP directly within the app
+- **Two devices, one packet.** Every datagram carries a watch block and a phone
+  block, so a consumer never has to align two streams.
+- **Linear acceleration, angular rate and rotation vector** from each device,
+  gravity already removed by the platform.
+- **Haptic return path.** A server can vibrate the watch, which makes closed-loop
+  experiments possible over the same link.
+- **Nothing to calibrate.** The upstream project asks the wearer to hold the watch
+  level before streaming. That step is removed.
+- **Address configurable in the app.** No rebuild to change the server.
 
-## System Architecture
+## Quick start
 
-```
-┌─────────────┐    Bluetooth    ┌─────────────┐      UDP        ┌─────────────┐
-│   Watch     │  ───────────>   │   Phone     │  ───────────>   │   Server    │
-│  (WearOS)   │    IMU 15f      │  (Android)  │   IMU 30f       │  (Python)   │
-│             │                 │             │   Port 65000    │             │
-└─────────────┘                 └─────────────┘                 └─────────────┘
-      ▲                               ▲                               │
-      │                               │           UDP                 │
-      │        Bluetooth              │        Port 65010             │
-      └───────────────────────────────┴───────────────────────────────┘
-                              Haptic Command (12 bytes)
-```
-
-## Data Format
-
-### IMU Data (30 floats, 120 bytes, Big Endian)
-
-| Index | Data | Description |
-|-------|------|-------------|
-| 0-14 | Watch | dT, timestamp(4), lacc(3), gyro(3), rotvec(4) |
-| 15-29 | Phone | dT, timestamp(4), lacc(3), gyro(3), rotvec(4) |
-
-**Field Details:**
-- `dT`: Delta time since last sample (seconds)
-- `timestamp`: Hour, minute, second, nanosecond
-- `lacc`: Linear acceleration [x, y, z] (m/s²)
-- `gyro`: Gyroscope [x, y, z] (rad/s)
-- `rotvec`: Rotation vector quaternion [w, x, y, z]
-
-### Haptic Command (3 integers, 12 bytes, Little Endian)
-
-| Index | Field | Range | Description |
-|-------|-------|-------|-------------|
-| 0 | intensity | 1-255 | Vibration intensity |
-| 1 | count | 1-10 | Number of vibrations |
-| 2 | duration | 50-500 | Duration per vibration (ms) |
-
-## Requirements
-
-### Development Environment
-- Android Studio (Hedgehog or later)
-- Gradle 8.4.0+
-- Kotlin 1.8.10
-- Java 1.8
-
-### Devices
-- **Phone**: Android 10 (API 29) or higher
-- **Watch**: WearOS (API 28 or higher), Samsung Galaxy Watch series recommended
-
-## Build & Install
+Install both apps from a checkout:
 
 ```bash
-# Full build
-./gradlew build
-
-# Build and install Phone app
 ./gradlew :phone:installDebug
-
-# Build and install Watch app
 ./gradlew :watch:installDebug
 ```
 
-## Usage
-
-### 1. Setup Phone App
-- Launch the phone app
-- Set the target IP to your server IP (tap to edit)
-- Verify WiFi connection status
-
-### 2. Setup Watch App
-- Launch the watch app
-- Verify connection with phone (shows "Connected")
-- Toggle "Stream IMU" to start streaming
-
-### 3. Receive Data on Server
-
-```python
-import socket
-import struct
-
-# Create UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('0.0.0.0', 65000))
-
-# Receive IMU data
-data, addr = sock.recvfrom(120)
-values = struct.unpack('>30f', data)  # Big Endian
-
-# Parse watch data
-watch_dt = values[0]
-watch_timestamp = values[1:5]
-watch_lacc = values[5:8]      # Linear acceleration
-watch_gyro = values[8:11]     # Gyroscope
-watch_rotvec = values[11:15]  # Rotation vector
-
-# Parse phone data
-phone_dt = values[15]
-phone_timestamp = values[16:20]
-phone_lacc = values[20:23]
-phone_gyro = values[23:26]
-phone_rotvec = values[26:30]
-```
-
-### 4. Send Haptic Feedback
-
-```python
-import socket
-import struct
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-phone_ip = "192.168.1.100"  # Phone IP address
-
-# Send haptic command (Little Endian)
-intensity = 200  # 1-255
-count = 1        # 1-10
-duration = 100   # 50-500 ms
-
-data = struct.pack('<iii', intensity, count, duration)
-sock.sendto(data, (phone_ip, 65010))
-```
-
-## Project Structure
-
-```
-imu-streaming-app/
-├── phone/                          # Android Phone App
-│   └── src/main/java/com/imu/phone/
-│       ├── activity/               # Activities
-│       ├── service/                # IMU, Haptic services
-│       ├── viewmodel/              # UI state management
-│       ├── ui/                     # Jetpack Compose UI
-│       └── DataSingleton.kt        # Global constants
-│
-├── watch/                          # WearOS Watch App
-│   └── src/main/java/com/imu/watch/
-│       ├── activity/               # Activities
-│       ├── service/                # IMU service
-│       ├── viewmodel/              # State management
-│       └── DataSingleton.kt        # Global constants
-│
-├── test/                           # Python test code
-│   └── imu_test.py                 # Real-time visualization & haptic test
-│
-├── IMU_APP_SPEC.md                 # Detailed data communication spec
-└── README.md
-```
-
-## Running Test Code
+On the phone, set the server address in Settings. On the watch, toggle **Stream
+IMU**. Then receive:
 
 ```bash
-cd test
-pip install matplotlib numpy
-python imu_test.py
+python scripts/receive_imu.py
 ```
 
-## Network Configuration
+The script plots both devices live, learns the phone's address from the first
+packet that arrives, and carries sliders and a button for firing haptic commands
+back. To read the packets yourself see [the protocol](docs/protocol.md); the short
+version is 30 big-endian floats on UDP 65000.
 
-| Data Type | Port | Direction | Format |
-|-----------|------|-----------|--------|
-| IMU | 65000 | Phone → Server | Big Endian |
-| Haptic | 65010 | Server → Phone | Little Endian |
+## Usage
 
-## Troubleshooting
+**Change where the data goes.** Settings on the phone stores the address and port;
+the defaults are `192.168.1.138` and `65000`.
 
-### Watch not connecting to Phone
-- Ensure both devices are paired via Bluetooth
-- Check that the Phone app is running
-- Restart both apps
+**Send a haptic command.** Three little-endian integers to UDP 65010 on the phone:
+intensity 1 to 255, pulse count 1 to 10, and milliseconds per pulse 50 to 500.
 
-### No data received on server
-- Verify the target IP is correctly set on the phone
-- Check firewall settings on the server
-- Ensure phone and server are on the same network
+```python
+import socket, struct
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.sendto(struct.pack("<iii", 200, 1, 100), ("192.168.1.138", 65010))
+```
 
-### Haptic feedback not working
-- Check the phone IP address in your Python code
-- Verify port 65010 is not blocked
-- Ensure the watch is connected and streaming
+**When nothing arrives.** The watch shows whether it has found the phone; if it has
+not, re-pair them over Bluetooth and restart both apps. If the watch is connected
+but the server is silent, the phone's address is usually pointing somewhere else,
+or the server's firewall is dropping UDP.
 
-## References
+## Repository layout
 
-- Original Project: [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps)
-- Detailed Data Specification: [IMU_APP_SPEC.md](./IMU_APP_SPEC.md)
+```
+phone/                   Android phone module
+watch/                   WearOS module
+scripts/
+  receive_imu.py         UDP receiver with a live plot
+docs/
+  protocol.md            wire format, both directions
+  architecture.md        module map, permissions, what this fork changed
+  figures/               README figures and the script that draws them
+```
+
+## Requirements
+
+Android Studio with Gradle 8.4, Kotlin 1.8.10 and JDK 8 as the compile target.
+Phone on Android 10 or newer, watch on WearOS API 28 or newer. The receiver script
+needs Python with NumPy and Matplotlib.
+
+## Limitations
+
+- **The two devices are not time-synchronised.** Each block carries its own `dT`
+  and timestamp, and nothing aligns them. A consumer that needs them aligned has
+  to do it.
+- **The phone emits only when it holds a watch sample**, so a dropped Bluetooth
+  link stops the whole stream rather than degrading it to phone-only.
+- **UDP, no acknowledgement and no sequence number.** Lost packets are lost
+  silently and cannot be detected from the payload.
+- **One wearing mode.** Removing calibration also removed the ability to express
+  anything but a pocketed phone and a wrist watch.
+- Tested on one Samsung Galaxy Watch and one Android phone on a single WiFi
+  network. Nothing here has been checked on other hardware.
 
 ## License
 
-MIT License
+MIT. See [LICENSE](LICENSE).
 
-## Author
-
-Made by LYH - Myongji University Capstone Project
+This project derives from
+[wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps),
+which is also MIT. Both copyright notices are carried in `LICENSE`, as MIT requires.
