@@ -88,9 +88,10 @@ docs/
 
 ## Requirements
 
-Android Studio with Gradle 8.4, Kotlin 1.8.10 and JDK 8 as the compile target.
-Phone on Android 10 or newer, watch on WearOS API 28 or newer. The receiver script
-needs Python with NumPy and Matplotlib.
+Gradle 8.10 with Android Gradle Plugin 8.4 and Kotlin 1.8.10. The plugin needs
+JDK 17 to run, while the modules compile to a JVM 8 target. Phone on Android 10
+or newer, watch on WearOS API 28 or newer. The receiver script needs Python with
+NumPy and Matplotlib.
 
 ## Limitations
 
