@@ -1,11 +1,11 @@
 <div align="center">
 
-# IMU Streaming App
+# IMU Streamer: watch and phone IMU to one UDP socket, haptics back
 
 Yuhyeon Lee · 2025
 
-[![build](https://img.shields.io/github/actions/workflow/status/blueion0612/IMU_Stream_APP_MJU/build.yml?branch=main&label=build)](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml)
-[![License](https://img.shields.io/github/license/blueion0612/IMU_Stream_APP_MJU)](LICENSE)
+[![build](https://img.shields.io/github/actions/workflow/status/blueion0612/IMU_Streamer/build.yml?branch=main&label=build)](https://github.com/blueion0612/IMU_Streamer/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/blueion0612/IMU_Streamer)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/kotlin-1.8.10-blue)](https://kotlinlang.org/)
 [![Status](https://img.shields.io/badge/status-research%20code-orange)](#limitations)
 [![Platform](https://img.shields.io/badge/platform-Android%20%2B%20WearOS-lightgrey)](#requirements)
@@ -23,7 +23,7 @@ Yuhyeon Lee · 2025
 The haptic command returns in gold, through the phone to the wrist. Packet sizes and
 ports are the ones `docs/protocol.md` specifies.*
 
-**IMU Streaming App** puts a wrist device and a phone on the same UDP socket. The
+**IMU Streamer** puts a wrist device and a phone on the same UDP socket. The
 watch streams its sensors to the phone over the wearable channel, the phone merges
 in its own and sends both to whatever server you point it at, and a command sent
 back to the phone vibrates the watch. There is no calibration step: start the app
