@@ -129,7 +129,7 @@ NumPy and Matplotlib.
   trains the gesture models IVO loads. It records the upstream 55-float packet, not
   this one, so the two are not interchangeable sources; see
   [the protocol](docs/protocol.md).
-- [CapstoneVOX](https://github.com/blueion0612/CapstoneVOX): hand signals for
+- [VOX](https://github.com/blueion0612/VOX): hand signals for
   emergency radio, built on the same upstream streaming apps.
 
 ## Credits
