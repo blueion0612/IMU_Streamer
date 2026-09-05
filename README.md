@@ -1,19 +1,27 @@
+<div align="center">
+
 # IMU Streaming App
 
 Yuhyeon Lee · 2025
 
+[![build](https://img.shields.io/github/actions/workflow/status/blueion0612/IMU_Stream_APP_MJU/build.yml?branch=main&label=build)](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/blueion0612/IMU_Stream_APP_MJU)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Android%20%2B%20WearOS-blue)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/kotlin-1.8.10-blue)](https://kotlinlang.org/)
-[![build](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml/badge.svg)](https://github.com/blueion0612/IMU_Stream_APP_MJU/actions/workflows/build.yml)
 [![Status](https://img.shields.io/badge/status-research%20code-orange)](#limitations)
+[![Platform](https://img.shields.io/badge/platform-Android%20%2B%20WearOS-lightgrey)](#requirements)
 
-[**Protocol**](docs/protocol.md) · [**Architecture**](docs/architecture.md) · [**Upstream**](https://github.com/wearable-motion-capture/sensor-stream-apps)
+[**Protocol**](docs/protocol.md) · [**Architecture**](docs/architecture.md) · [**Upstream**](https://github.com/wearable-motion-capture/sensor-stream-apps) · [**Related**](#related)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/hero_system-dark.png">
   <img alt="Watch streams to the phone over the wearable channel, the phone sends both devices to a server over UDP, and haptic commands return through the phone" src="docs/figures/hero_system.png">
 </picture>
+
+</div>
+
+*Sensors flow out in green, from the watch through the phone to any UDP listener.
+The haptic command returns in gold, through the phone to the wrist. Packet sizes and
+ports are the ones `docs/protocol.md` specifies.*
 
 **IMU Streaming App** puts a wrist device and a phone on the same UDP socket. The
 watch streams its sensors to the phone over the wearable channel, the phone merges
@@ -56,10 +64,14 @@ version is 30 big-endian floats on UDP 65000.
 
 ## Usage
 
-**Change where the data goes.** Settings on the phone stores the address and port;
+### Change where the data goes
+
+Settings on the phone stores the address and port;
 the defaults are `192.168.1.138` and `65000`.
 
-**Send a haptic command.** Three little-endian integers to UDP 65010 on the phone:
+### Send a haptic command
+
+Three little-endian integers to UDP 65010 on the phone:
 intensity 1 to 255, pulse count 1 to 10, and milliseconds per pulse 50 to 500.
 
 ```python
@@ -68,7 +80,9 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.sendto(struct.pack("<iii", 200, 1, 100), ("192.168.1.138", 65010))
 ```
 
-**When nothing arrives.** The watch shows whether it has found the phone; if it has
+### When nothing arrives
+
+The watch shows whether it has found the phone; if it has
 not, re-pair them over Bluetooth and restart both apps. If the watch is connected
 but the server is silent, the phone's address is usually pointing somewhere else,
 or the server's firewall is dropping UDP.
@@ -83,7 +97,7 @@ scripts/
 docs/
   protocol.md            wire format, both directions
   architecture.md        module map, permissions, what this fork changed
-  figures/               README figures and the script that draws them
+  figures/               README figure, the script that draws it, figstyle.py
 ```
 
 ## Requirements
@@ -95,7 +109,7 @@ NumPy and Matplotlib.
 
 ## Limitations
 
-- **The two devices are not time-synchronised.** Each block carries its own `dT`
+- **The two devices are not time-synchronized.** Each block carries its own `dT`
   and timestamp, and nothing aligns them. A consumer that needs them aligned has
   to do it.
 - **The phone emits only when it holds a watch sample**, so a dropped Bluetooth
@@ -107,10 +121,25 @@ NumPy and Matplotlib.
 - Tested on one Samsung Galaxy Watch and one Android phone on a single WiFi
   network. Nothing here has been checked on other hardware.
 
-## License
+## Related
 
-MIT. See [LICENSE](LICENSE).
+- [IVO](https://github.com/blueion0612/IVO): a presentation controller that reads
+  this app's 30-float packet and vibrates the watch back through the haptic channel.
+- [IMU_Gesture_Classifier](https://github.com/blueion0612/IMU_Gesture_Classifier):
+  trains the gesture models IVO loads. It records the upstream 55-float packet, not
+  this one, so the two are not interchangeable sources; see
+  [the protocol](docs/protocol.md).
+- [CapstoneVOX](https://github.com/blueion0612/CapstoneVOX): hand signals for
+  emergency radio, built on the same upstream streaming apps.
+
+## Credits
 
 This project derives from
 [wearable-motion-capture/sensor-stream-apps](https://github.com/wearable-motion-capture/sensor-stream-apps),
-which is also MIT. Both copyright notices are carried in `LICENSE`, as MIT requires.
+which is MIT. Both copyright notices are carried in `LICENSE`, as MIT requires, and
+[`docs/architecture.md`](docs/architecture.md) lists what this fork removed and
+changed.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
